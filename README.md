@@ -10,3 +10,5 @@ Warning: a lot of bugs, development halted due to personal reasons
 3) To quit, press ESC and then write :q (no other commands supported as of now)
 
 # Pictures
+
+![picture of the text editor](https://ibb.co/HDR8sNc)
