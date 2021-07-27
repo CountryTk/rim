@@ -11,4 +11,4 @@ Warning: a lot of bugs, development halted due to personal reasons
 
 # Pictures
 
-![picture of the text editor](https://ibb.co/HDR8sNc)
+![picture of the text editor](https://i.ibb.co/4ZCrGsb/picture.png)
