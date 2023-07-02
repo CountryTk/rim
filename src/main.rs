@@ -72,12 +72,12 @@ fn run() {
                             editor.command_buffer.push(c);
                         }
                         Key::Backspace => {
-                            editor.command_buffer.pop();
                             if editor.cur_pos.x != 1 {
+                                editor.command_buffer.pop();
                                 editor.set_pos(editor.cur_pos.x - 1, editor.terminal_size.y);
-                                print!("{}", termion::clear::CurrentLine);
-                                print!("{}", editor.command_buffer);
+                                print!("{}", termion::clear::AfterCursor);
                             }
+
                         }
                         _ => {}
                     }
