@@ -5,7 +5,6 @@ pub struct Coordinates {
 }
 
 pub trait Position {
-    fn cur_pos(&self) -> Coordinates;
     fn set_x(&mut self, x: u16);
     fn set_y(&mut self, y: u16);
 }
@@ -13,11 +12,12 @@ pub trait Position {
 #[derive(PartialOrd, PartialEq)]
 pub enum StatusCodes {
     Exit,
-    NoOp
+    NoOp,
+    Insert,
 }
 
 #[derive(Copy, Clone)]
-pub enum EditMode {
+pub enum EditorMode {
     Insert,
     Command,
 }

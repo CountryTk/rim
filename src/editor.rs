@@ -1,16 +1,25 @@
-use crate::util::{Coordinates, EditMode};
+use crate::util::{Coordinates, EditorMode, Position, set_pos};
 use ropey::Rope;
 
 pub struct Editor {
     pub(crate) buffer: Vec<Rope>,
-    pub(crate) command_buffer: String,
     pub(crate) cur_pos: Coordinates,
     pub(crate) terminal_size: Coordinates,
-    pub(crate) mode: EditMode,
+    pub(crate) mode: EditorMode,
     pub(crate) last_cur_pos: Coordinates, // used for remembering cursor pos when switching modes
     pub(crate) total_length: u32,         // used for remembering cursor pos when switching modes
 }
 
+
+impl Position for Editor {
+    fn set_x(&mut self, x: u16) {
+        self.cur_pos.x = x;
+    }
+
+    fn set_y(&mut self, y: u16) {
+        self.cur_pos.y = y;
+    }
+}
 impl Editor {
     pub fn new() -> Self {
         let term_size = termion::terminal_size().unwrap();
@@ -18,25 +27,14 @@ impl Editor {
         Editor {
             cur_pos: Coordinates { x: 1, y: 1 },
             buffer: vec![buf],
-            command_buffer: String::new(),
             terminal_size: Coordinates {
                 x: term_size.0,
                 y: term_size.1,
             },
-            last_cur_pos: Coordinates { x: 0, y: 0 },
-            mode: EditMode::Insert,
+            last_cur_pos: Coordinates { x: 1, y: 1 },
+            mode: EditorMode::Command,
             total_length: 0,
         }
-    }
-
-    pub fn set_pos(&mut self, x: u16, y: u16) {
-        self.cur_pos.x = x;
-        self.cur_pos.y = y;
-        print!(
-            "{}{}",
-            termion::cursor::SteadyBar,
-            termion::cursor::Goto(x, y)
-        );
     }
 
     pub fn set_last_pos(&mut self, x: u16, y: u16) {
@@ -81,7 +79,7 @@ impl Editor {
         );
     }
 
-    pub fn set_mode(&mut self, mode: EditMode) {
+    pub fn set_mode(&mut self, mode: EditorMode) {
         self.mode = mode;
     }
 
@@ -109,16 +107,16 @@ impl Editor {
         let len = self.buffer[y - 1].len_chars();
         if len == 0 && y >= 2 {
             let new_x = self.buffer[y - 2].len_chars() + 1;
-            self.set_pos(new_x as u16, (y - 1) as u16);
+            set_pos(self, new_x as u16, (y - 1) as u16);
             self.show_status();
         } else if len == 1 {
             self.buffer[y - 1] = Rope::new();
             self.total_length -= 1;
-            self.set_pos((x - 1) as u16, y as u16);
+            set_pos(self, (x - 1) as u16, y as u16);
             print!(" ");
         } else if len >= 2 {
             self.buffer[y - 1].remove(len - 1..len);
-            self.set_pos((x - 1) as u16, y as u16);
+            set_pos(self, (x - 1) as u16, y as u16);
             self.total_length -= 1;
             print!(" ");
         }
@@ -129,26 +127,26 @@ impl Editor {
         if self.get_current_y() < self.buffer.len() as u16 {
             let down = self.buffer[self.get_current_y_usize()].len_chars() + 1;
 
-            self.set_pos(down as u16, self.cur_pos.y + 1);
+            set_pos(self, down as u16, self.cur_pos.y + 1);
         }
         self.show_status();
     }
     pub fn handle_up(&mut self) {
         if self.get_current_y_usize() >= 2 {
             let up = self.buffer[self.get_current_y_usize() - 2].len_chars() + 1;
-            self.set_pos(up as u16, (self.get_current_y_usize() - 1) as u16);
+            set_pos(self, up as u16, (self.get_current_y_usize() - 1) as u16);
             self.show_status();
         }
     }
     pub fn handle_right(&mut self) {
         if self.buffer[self.get_current_y_usize() - 1].len_chars() as u16 >= self.get_current_x() {
-            self.set_pos(self.get_current_x() + 1, self.get_current_y());
+            set_pos(self, self.get_current_x() + 1, self.get_current_y());
         }
         self.show_status();
     }
     pub fn handle_left(&mut self) {
         if self.get_current_x() != 1 {
-            self.set_pos(self.get_current_x() - 1, self.get_current_y());
+            set_pos(self, self.get_current_x() - 1, self.get_current_y());
             self.show_status();
         }
     }
@@ -165,17 +163,17 @@ impl Editor {
             self.buffer[current_y - 1].insert_char(current_x - 1, c);
 
             self.render_current_line();
-            self.set_pos(length as u16, current_y as u16);
+            set_pos(self, length as u16, current_y as u16);
         } else {
             self.buffer[current_y - 1].insert_char(current_x - 1, c);
             self.render_current_line();
-            self.set_pos((current_x + 1) as u16, current_y as u16);
+            set_pos(self, (current_x + 1) as u16, current_y as u16);
         }
         self.total_length += 1;
         self.show_status();
     }
     pub fn handle_newline(&mut self) {
-        self.set_pos(1, self.get_current_y() + 1);
+        set_pos(self, 1, self.get_current_y() + 1);
 
         match self.buffer.get(self.get_current_y_usize()) {
             None => {
@@ -186,5 +184,11 @@ impl Editor {
             }
         }
         self.show_status();
+    }
+
+    pub fn handle_esc(&mut self) {
+        self.set_last_pos(self.get_current_x(), self.get_current_y());
+        set_pos(self, 1, self.terminal_size.y);
+        self.set_mode(EditorMode::Command);
     }
 }
