@@ -1,15 +1,5 @@
+use crate::util::{Coordinates, EditMode};
 use ropey::Rope;
-#[derive(Debug)]
-pub struct Coordinates {
-    pub x: u16,
-    pub y: u16,
-}
-
-#[derive(Copy, Clone)]
-pub enum EditMode {
-    Insert,
-    Command,
-}
 
 pub struct Editor {
     pub(crate) buffer: Vec<Rope>,
@@ -116,7 +106,7 @@ impl Editor {
     pub fn handle_delete(&mut self) {
         let x = self.get_current_x_usize();
         let y = self.get_current_y_usize();
-        let len = self.buffer[y - 1].len_chars() ;
+        let len = self.buffer[y - 1].len_chars();
         if len == 0 && y >= 2 {
             let new_x = self.buffer[y - 2].len_chars() + 1;
             self.set_pos(new_x as u16, (y - 1) as u16);
@@ -127,7 +117,7 @@ impl Editor {
             self.set_pos((x - 1) as u16, y as u16);
             print!(" ");
         } else if len >= 2 {
-            self.buffer[y - 1].remove(len-1..len);
+            self.buffer[y - 1].remove(len - 1..len);
             self.set_pos((x - 1) as u16, y as u16);
             self.total_length -= 1;
             print!(" ");
@@ -136,7 +126,7 @@ impl Editor {
         self.show_status();
     }
     pub fn handle_down(&mut self) {
-        if self.cur_pos.y < self.buffer.len() as u16 {
+        if self.get_current_y() < self.buffer.len() as u16 {
             let down = self.buffer[self.get_current_y_usize()].len_chars() + 1;
 
             self.set_pos(down as u16, self.cur_pos.y + 1);
@@ -151,7 +141,7 @@ impl Editor {
         }
     }
     pub fn handle_right(&mut self) {
-        if self.buffer[self.get_current_y_usize() - 1].len_chars() as u16 >= self.cur_pos.x {
+        if self.buffer[self.get_current_y_usize() - 1].len_chars() as u16 >= self.get_current_x() {
             self.set_pos(self.get_current_x() + 1, self.get_current_y());
         }
         self.show_status();
@@ -164,31 +154,30 @@ impl Editor {
     }
 
     pub fn handle_char(&mut self, c: char) {
-        let current_x = self.cur_pos.x;
-        let current_y = self.cur_pos.y;
-        let buffer = &self.buffer[(current_y - 1) as usize];
-        if buffer.len_chars() != (current_x - 1) as usize {
+        let current_x = self.get_current_x_usize();
+        let current_y = self.get_current_y_usize();
+        let buffer = &self.buffer[current_y - 1];
+        if buffer.len_chars() != current_x - 1 {
             // we are inserting in the middle of the string
-            let slice = buffer.slice(0..(current_x) as usize);
+            let slice = buffer.slice(0..current_x);
             let length = slice.len_chars() + 1;
 
-            self.buffer[(current_y - 1) as usize].insert_char((current_x - 1) as usize, c);
+            self.buffer[current_y - 1].insert_char(current_x - 1, c);
 
             self.render_current_line();
-            self.set_pos(length as u16, current_y);
+            self.set_pos(length as u16, current_y as u16);
         } else {
-            self.buffer[(current_y - 1) as usize].insert_char((current_x - 1) as usize, c);
+            self.buffer[current_y - 1].insert_char(current_x - 1, c);
             self.render_current_line();
-            self.set_pos(current_x + 1, current_y);
+            self.set_pos((current_x + 1) as u16, current_y as u16);
         }
         self.total_length += 1;
         self.show_status();
     }
     pub fn handle_newline(&mut self) {
-        let cur_y = self.cur_pos.y;
-        self.set_pos(1, cur_y + 1);
+        self.set_pos(1, self.get_current_y() + 1);
 
-        match self.buffer.get(self.get_current_y() as usize) {
+        match self.buffer.get(self.get_current_y_usize()) {
             None => {
                 self.buffer.push(Rope::new());
             }

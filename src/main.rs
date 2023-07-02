@@ -1,14 +1,20 @@
+mod command_line;
 mod editor;
+mod util;
 
-use crate::editor::{EditMode, Editor};
-use std::io::{stdin, stdout, Write};
+use crate::command_line::CommandLine;
+use crate::editor::Editor;
+use crate::util::{set_pos, EditMode};
 use ropey::Rope;
+use std::io::{stdin, stdout, Write};
 use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
+use crate::util::StatusCodes::Exit;
 
 fn run() {
     let mut editor = Editor::new();
+    let mut command_line = CommandLine::new();
 
     loop {
         let stdin = stdin();
@@ -50,35 +56,16 @@ fn run() {
             }
             EditMode::Command => {
                 print!("{}", termion::cursor::Goto(1, 1));
-                editor.render_current_line();
-                editor.set_pos(1, editor.terminal_size.y);
+                editor.set_pos(1, command_line.cur_pos.y);
                 stdout.flush().unwrap();
                 for c in stdin.keys() {
                     match c.unwrap() {
-                        Key::Char('\n') => {
-                            if editor.command_buffer == ":q" {
-                                editor.clear();
-                                return;
-                            } else if editor.command_buffer == "i" {
-                                editor.set_mode(EditMode::Insert);
-                                editor.command_buffer.clear();
-                                editor.set_pos(1, 1);
-                                break;
-                            }
-                        }
-                        Key::Char(c) => {
-                            print!("{}", c);
-                            editor.set_pos(editor.cur_pos.x + 1, editor.terminal_size.y);
-                            editor.command_buffer.push(c);
-                        }
-                        Key::Backspace => {
-                            if editor.cur_pos.x != 1 {
-                                editor.command_buffer.pop();
-                                editor.set_pos(editor.cur_pos.x - 1, editor.terminal_size.y);
-                                print!("{}", termion::clear::AfterCursor);
-                            }
-
-                        }
+                        Key::Char('\n') => if command_line.handle_newline(&mut editor) == Exit {
+                            editor.clear();
+                            return;
+                        } else {},
+                        Key::Char(c) => command_line.handle_char(c),
+                        Key::Backspace => command_line.handle_delete(),
                         _ => {}
                     }
                     stdout.flush().unwrap();
@@ -86,22 +73,8 @@ fn run() {
             }
         }
     }
-
 }
 
 fn main() {
-    // Get the standard input stream.
-    let mut rope = Rope::new();
-    rope.insert_char(0, 'h');
-    rope.insert_char(1, 'e');
-    rope.insert_char(2, 'l');
-    rope.insert_char(3, 'l');
-    rope.insert_char(4, 'o');
-
-    // dbg!(rope.to_string());
-    // dbg!(rope.len_chars());
-    // rope.remove(4..5);
-    //
-    // dbg!(rope.to_string());
     run();
 }
