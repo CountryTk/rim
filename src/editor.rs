@@ -113,12 +113,23 @@ impl Editor {
             self.buffer[y - 1] = Rope::new();
             self.total_length -= 1;
             set_pos(self, (x - 1) as u16, y as u16);
-            print!(" ");
+            print!("{}", termion::clear::CurrentLine);
+            self.render_current_line();
         } else if len >= 2 {
-            self.buffer[y - 1].remove(len - 1..len);
-            set_pos(self, (x - 1) as u16, y as u16);
+            if len  != x - 1 && x >= 2 {
+                let slice = self.buffer[y-1].slice(0..x).len_chars();
+
+                self.buffer[y - 1].remove(x-2..x-1);
+                set_pos(self, (slice-1) as u16, y as u16);
+
+                self.render_current_line();
+            } else {
+                self.buffer[y - 1].remove(len - 1..len);
+                set_pos(self, (x - 1) as u16, y as u16);
+            }
             self.total_length -= 1;
-            print!(" ");
+            print!("{}", termion::clear::CurrentLine);
+            self.render_current_line();
         }
 
         self.show_status();
@@ -190,5 +201,10 @@ impl Editor {
         self.set_last_pos(self.get_current_x(), self.get_current_y());
         set_pos(self, 1, self.terminal_size.y);
         self.set_mode(EditorMode::Command);
+    }
+
+    pub fn handle_home(&mut self) {
+        set_pos(self, 1, self.get_current_y());
+        self.show_status();
     }
 }

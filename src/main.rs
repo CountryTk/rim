@@ -62,6 +62,7 @@ fn run() {
                         Key::Up => editor.handle_up(),
                         Key::Down => editor.handle_down(),
                         Key::Backspace => editor.handle_delete(),
+                        Key::Home => editor.handle_home(),
                         Key::Esc => {
                             editor.handle_esc();
                             break;
