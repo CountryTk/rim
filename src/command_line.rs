@@ -1,5 +1,5 @@
 use crate::editor::Editor;
-use crate::util::{set_pos, Coordinates, EditorMode, Position, StatusCodes};
+use crate::util::{set_buffer_pos, Coordinates, EditorMode, Position, StatusCodes};
 
 pub struct CommandLine {
     pub(crate) buffer: String,
@@ -8,12 +8,20 @@ pub struct CommandLine {
 }
 
 impl Position for CommandLine {
-    fn set_x(&mut self, x: u16) {
+    fn set_buffer_x(&mut self, x: u16) {
         self.cur_pos.x = x;
     }
 
-    fn set_y(&mut self, y: u16) {
+    fn set_buffer_y(&mut self, y: u16) {
         self.cur_pos.y = y;
+    }
+
+    fn set_screen_x(&mut self, x: u16) {
+        todo!()
+    }
+
+    fn set_screen_y(&mut self, y: u16) {
+        todo!()
     }
 }
 
@@ -37,7 +45,7 @@ impl CommandLine {
         } else if self.buffer == ":i" {
             editor.set_mode(EditorMode::Insert);
             self.buffer.clear();
-            set_pos(self, editor.last_cur_pos.x, editor.last_cur_pos.y);
+            set_buffer_pos(self, editor.last_cur_pos.x, editor.last_cur_pos.y);
             StatusCodes::Insert
         } else {
             StatusCodes::NoOp
@@ -47,7 +55,7 @@ impl CommandLine {
     pub fn handle_char(&mut self, c: char) {
         print!("{}", c);
         let x = self.cur_pos.x;
-        set_pos(self, x + 1, self.y);
+        set_buffer_pos(self, x + 1, self.y);
         self.buffer.push(c);
     }
 
@@ -56,7 +64,7 @@ impl CommandLine {
             self.buffer.pop();
             let x = self.cur_pos.x;
             let y = self.cur_pos.y;
-            set_pos(self, x - 1, y);
+            set_buffer_pos(self, x - 1, y);
             print!("{}", termion::clear::AfterCursor);
         }
     }
